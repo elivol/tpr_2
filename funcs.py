@@ -10,7 +10,7 @@ def savidj(var_crit):
     # 1. Составить матрицу a[ij]=max_e[ij] - e[ij]
     sum_col = var_crit.max(axis=0)  # матрица максимумов по каждому столбцу
 
-    a = np.zeros((m, n), dtype=int)
+    a = np.zeros((m, n), dtype=float)
 
     i = 0
     while i < m:
@@ -22,7 +22,8 @@ def savidj(var_crit):
 
     # 2. Составить столбец, дополняющий матрицу var_crit, из max_a[ij]
     e_ir = a.max(axis=1)
-    return e_ir.max()
+    e_ir_min = [[e_ir[i], i+1] for i in range(m) if e_ir[i] == e_ir.min()]
+    return (a, e_ir, e_ir_min)
 
 
 # Метод Ходжа-Лемана
