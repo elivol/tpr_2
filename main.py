@@ -57,6 +57,8 @@ class InputMatrix():
     col = 2
     row = 2
     matrix_entry = []
+    q_entry = []
+    v_entry = 0
 
     def __init__(self, row, col, method):
 
@@ -101,21 +103,22 @@ class InputMatrix():
             v_l = Label(win, text='Степень доверия v', bg='#dcf7dc')
 
             # Создание полей ввода
-            q_entry = [Entry(win, width=8) for i in range(self.col)]  # вероятность каждого критерия
-            v_entry = Entry(win, width=8)  # параметр v
+            self.q_entry = [Entry(win, width=8) for i in range(self.col)]  # вероятность каждого критерия
+            self.v_entry = Entry(win, width=8)  # параметр v
 
             # Отображение леблов и полей
             header_q_l.grid(row=3+self.row, column=0, columnspan=self.col+1)
             for i in range(self.col):
                 q_l[i].grid(row=3+self.row+1, column=i+1)
-                q_entry[i].grid(row=3+self.row+2, column=i+1)
+                self.q_entry[i].grid(row=3+self.row+2, column=i+1)
             v_l.grid(row=3+self.row+3, column=0, columnspan=self.col+1)
-            v_entry.grid(row=3+self.row+4, column=(self.col+1)//2)
+            self.v_entry.grid(row=3+self.row+4, column=(self.col+1)//2)
 
         # Кнопка и ее отображение в окне win
         do_btn = Button(win, text='Далее', bg='#dcf7dc')
         do_btn.grid(row=3+self.row+5, column=(1+self.col)//2, pady=5)
 
+        # Обработчик события кнопки
         def show_solution_savidj(event):
             matrix = np.zeros((self.row, self.col), dtype=float)
 
@@ -130,11 +133,124 @@ class InputMatrix():
                     else:
                         messagebox.showwarning("Ошибка", "Данные введены неверно!")
                         return
-            if self.method == 0:
-                SolutionSavidj(matrix)
+
+            if self.method == 1:
+
+                # Заполнение данными параметров для метода Ходжа-Лемана
+                q = []
+                v = 0
+                for i in (range(self.col)):
+                    if self.q_entry[i].get():
+                        try:
+                            q.append(float(self.q_entry[i].get()))
+                            # Ограничение по размеру числа
+                            if not 0 <= q[-1] <= 1:
+                                messagebox.showwarning("Ошибка", "Параметр 'q' должен принадлежить отрезку [0, 1]!")
+                                return
+                        except ValueError:
+                            messagebox.showwarning("Ошибка", "Данные введены неверно!")
+                            return
+                    else:
+                        messagebox.showwarning("Ошибка", "Данные введены неверно!")
+                        return
+
+                if self.v_entry.get():
+                    try:
+                        v = float(self.v_entry.get())
+                        # Ограничение по размеру числа
+                        if not 0 <= v <= 1:
+                            messagebox.showwarning("Ошибка", "Параметр 'v' должен принадлежить отрезку [0, 1]!")
+                            return
+                    except ValueError:
+                        messagebox.showwarning("Ошибка", "Данные введены неверно!")
+                        return
+                else:
+                    messagebox.showwarning("Ошибка", "Данные введены неверно!")
+                    return
+
+            # Вызов нужного окна для решения задачи
+            SolutionSavidj(matrix) if self.method == 0 else SolutionHodjLeman(matrix, q, v)
 
         # Связывание виджета, события и функции
         do_btn.bind('<Button-1>', show_solution_savidj)
+
+
+class SolutionHodjLeman():
+
+    matrix = None
+
+    def __init__(self, matrix, q, v):
+
+        # Установка свойств
+        self.matrix = matrix
+
+        # Решение задачи:
+        solution = hodj_leman(matrix, q, v)
+        row_a = solution[1].shape[0]
+
+        # Создание дочернего окна
+        win = Toplevel(root, relief='raised')
+        win.title('Вывод решения')
+
+        # Виджет шапка
+        fra = Frame(win, width=200, height=20, bg='#dcf7dc')
+        header = Label(fra, text='Решение по методу Ходжа-Лемана', bg='#dcf7dc', justify='center')
+        header.grid()
+        fra.grid(row=0, column=0, columnspan=row_a, padx=3)
+
+        # Леблы
+        step_1 = Label(win, text='Шаг 1', bg='#dcf7dc')
+        step_2 = Label(win, text='Шаг 2', bg='#dcf7dc')
+        step_3 = Label(win, text='Шаг 3', bg='#dcf7dc')
+
+        # Сепаратор
+        sep1 = ttk.Separator(win, orient='horizontal')
+        sep2 = ttk.Separator(win, orient='horizontal')
+
+        # Отображение данных
+
+        # ШАГ 1
+        step_1.grid(row=1, column=0)
+
+        Label(win, text='Найдем минимальные элементы для каждой строки исходной матрицы:').grid(row=2, column=0, columnspan=row_a)
+        Label(win, text='(столбец минимальных элементов представлен в транспонированном виде)').grid(row=3, column=0, columnspan=row_a)
+
+        str_min_el = 'min e[ji] = ('
+        for i in range(row_a):
+            str_min_el += ' '+str(solution[0][i])+' '
+        str_min_el += ')'
+
+        Label(win, text=str_min_el, fg='blue').grid(row=4, column=0, columnspan=row_a)
+        sep1.grid(row=5, column=0, columnspan=row_a, sticky='ew')
+
+        # ШАГ 2
+        step_2.grid(row=6, column=0)
+
+        Label(win, text='Дополним исходную матрицу столбцом, элементы ' +
+                        'которого вычисляются по формуле:').grid(row=7, column=0, columnspan=row_a)
+        Label(win, text='v * sum(e[ij]*q[j]) + (1-v) * min e[ij]', fg='red').grid(row=8, column=0, columnspan=row_a)
+        Label(win, text='(столбец представлен в транспонированном виде)').grid(row=9, column=0, columnspan=row_a)
+
+        str_min_el = 'e[ir] = ('
+        for i in range(row_a):
+            str_min_el += ' '+str(solution[1][i])+' '
+
+        str_min_el += ')'
+        Label(win, text=str_min_el, fg='blue').grid(row=10, column=0, columnspan=row_a)
+        sep2.grid(row=11, column=0, columnspan=row_a, sticky='ew')
+
+        # ШАГ 3
+        step_3.grid(row=12, column=0)
+
+        Label(win, text='Результатом решения является(-ются) наибольший(-е) ' +
+                        'элемент(ы) столбца e[ir]:').grid(row=13, column=0, columnspan=row_a)
+        Label(win, text='Значение функции Z:').grid(row=14, column=0, columnspan=row_a)
+        Label(win, text=str(solution[2][0][0]), fg='blue').grid(row=15, column=0, columnspan=row_a)
+        Label(win, text='Варианты, выбранные в ходе решения задачи методом Сэвиджа:').grid(row=16, column=0, columnspan=row_a)
+
+        for i in range(len(solution[2])):
+            str_res = 'E['+str(solution[2][i][1])+'] ='+str(solution[2][i][0])
+            Label(win, text=str_res, fg='blue').grid(row=17+i, column=0)
 
 
 class SolutionSavidj():
@@ -157,28 +273,18 @@ class SolutionSavidj():
 
         # Виджет шапка
         fra = Frame(win, width=200, height=20, bg='#dcf7dc')
-        header = Label(fra, text='Решение по методу Сэвиджа', bg='#dcf7dc', justify='center')
-
-        # Создание трех вреймов для отображения результата и промежуточных шагов
-        fra1 = Frame(win, width=100, height=20)
-        fra2 = Frame(win, width=100, height=20)
-        fra3 = Frame(win, width=200, height=20)
-
+        header = Label(fra, text='Решение по методу Сэвиджа', bg='#dcf7dc')
         header.grid()
-        fra.grid(row=0, column=0, columnspan=col_a+2, padx=3)
-
-
-        # ШАГ 1
-        #  В первый фрейм выводим матрицу а[ij]
+        fra.grid(row=0, column=0, columnspan=col_a+7, padx=3)
 
         # Леблы
         step_1 = Label(win, text='Шаг 1', bg='#dcf7dc')
         step_2 = Label(win, text='Шаг 2', bg='#dcf7dc')
         step_3 = Label(win, text='Шаг 3', bg='#dcf7dc')
-        matrix_a_l = Label(win, text='Построим матрицу a[ij], \nвычисленную по формуле \nmax(max(e[ij]) - e[ij]):')
-        matrix_a_res = [[Label(win, text=str(el)) for el in row] for row in solution[0]]
+        matrix_a_l = Label(win, text='Построим матрицу a[ij], \nвычисленную по формуле:')
+        matrix_a_res = [[Label(win, text=str(el), fg='blue') for el in row] for row in solution[0]]
         column_e_l = Label(win, text='Дополним матрицу a[ij] столбцом e[ir], \nвычисленным по формуле \nmax(a[ij]):')
-        column_e_res = [Label(win, text=str(el)) for el in solution[1]]
+        column_e_res = [Label(win, text=str(el), fg='blue') for el in solution[1]]
         result_l = Label(win, text='Результатом решения является(-ются) наименьший(-е) элемент(ы) столбца e[ir]:')
         result = solution[2]
 
@@ -187,32 +293,36 @@ class SolutionSavidj():
         sep2 = ttk.Separator(win, orient='horizontal')
         sep3 = ttk.Separator(win, orient='horizontal')
 
-
         # Отображение содержимого
+        # ШАГ 1
         step_1.grid(row=1, column=0, pady=3)
 
-        matrix_a_l.grid(row=2, column=0, pady=3, columnspan=col_a+2)
-        sep1.grid(row=1, column=col_a+3, rowspan=row_a+2, sticky='ns')
+        matrix_a_l.grid(row=2, column=0, columnspan=col_a+2)
+        Label(win, text='max(max(e[ij]) - e[ij])', fg='red').grid(row=3, column=0, columnspan=col_a+2)
+        sep1.grid(row=2, column=col_a+3, rowspan=row_a+3, sticky='ns')
         for i in range(row_a):
             for j in range(col_a):
-                matrix_a_res[i][j].grid(row=i+3, column=j, pady=3)
+                matrix_a_res[i][j].grid(row=i+4, column=j, pady=3)
 
+        # ШАГ 2
         step_2.grid(row=1, column=col_a+4)
         column_e_l.grid(row=2, column=col_a+4, columnspan=col_a+5)
         for i in range(row_a):
-            column_e_res[i].grid(row=i+3, column=col_a+4)
+            column_e_res[i].grid(row=i+4, column=col_a+4)
 
-        sep2.grid(row=row_a+4, column=0, columnspan=col_a+2, sticky='ew')
-        sep3.grid(row=row_a+4, column=col_a+2, columnspan=col_a+7, sticky='ew')
+        sep2.grid(row=row_a+5, column=0, columnspan=col_a+2, sticky='ew')
+        sep3.grid(row=row_a+5, column=col_a+2, columnspan=col_a+7, sticky='ew')
 
-        step_3.grid(row=row_a+5, column=0, columnspan=2)
-        result_l.grid(row=row_a+6, column=0, columnspan=col_a+7)
-        Label(win, text='Значение функции: Z = '+str(result[0][0])).grid(row=row_a+7, column=0, columnspan=col_a+7)
-        Label(win, text='Варианты, выбранные в ходе решения задачи методом Сэвиджа:').grid(row=row_a+8, column=0, columnspan=col_a+7)
+        # ШАГ 3
+        step_3.grid(row=row_a+6, column=0, columnspan=2)
+        Label(win, text='Значение функции Z:').grid(row=row_a+7, column=0, columnspan=col_a+7)
+        Label(win, text=str(result[0][0]), fg='blue').grid(row=row_a+8, column=0, columnspan=col_a+7)
+
+        Label(win, text='Варианты, выбранные в ходе решения задачи методом Сэвиджа:').grid(row=row_a+9, column=0, columnspan=col_a+7)
+
         for i in range(len(result)):
-            Label(win, text='E['+str(result[i][1])+'] =').grid(row=row_a+i+9, column=0)
-            Label(win, text=str(result[i][0])).grid(row=row_a+i+9, column=1)
-
+            str_res = 'E['+str(result[i][1])+'] ='+str(result[i][0])
+            Label(win, text=str_res, fg='blue').grid(row=row_a+i+10, column=0)
 
 
 win = MainWindow()

@@ -27,10 +27,9 @@ def savidj(var_crit):
 
 
 # Метод Ходжа-Лемана
-def hodj_leman(var_crit, v, q_array):
+def hodj_leman(var_crit, q_array, v):
 
     m = var_crit.shape[0]
-    n = var_crit.shape[1]
 
     # найти минимумы по строке
     min_row = var_crit.min(axis=1)
@@ -41,9 +40,10 @@ def hodj_leman(var_crit, v, q_array):
     while i < m:
         e_ir[i] = v*sum(var_crit[i]*q_array) + (1-v)*min_row[i]
         i += 1
-    return e_ir.max()
+    e_ir_max = [[e_ir[i], i+1] for i in range(m) if e_ir[i] == e_ir.max()]
+    return (min_row, e_ir, e_ir_max)
 
 
 #print(savidj(np.array([[10, -2, 8], [-3, 5.2, 6], [7.5, 9, -1]], dtype=float)))
 #print(savidj(np.array([[-50, -21, -23], [-33, -11, 15], [0, 5, 10]], dtype=float)))
-#print(hodj_leman(np.array([[10, -2, 8], [-3, 5.2, 6], [7.5, 9, -1]], dtype=float), 0.5, [0.33 for i in range(3)]))
+#print(hodj_leman(np.array([[10, -2, 8], [-3, 5.2, 6], [7.5, 9, -1]], dtype=float), [0.33 for i in range(3)], 0.5))
