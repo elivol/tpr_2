@@ -5,6 +5,7 @@ from funcs import *
 import pickle as pckl
 
 root = Tk()
+root.title('ТПР')
 
 
 class MainWindow():
