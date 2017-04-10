@@ -1,6 +1,8 @@
 from tkinter import *
 from tkinter import ttk, messagebox
+from tkinter.filedialog import *
 from funcs import *
+import pickle as pckl
 
 root = Tk()
 
@@ -59,6 +61,7 @@ class InputMatrix():
     matrix_entry = []
     q_entry = []
     v_entry = 0
+    flag = False
 
     def __init__(self, row, col, method):
 
@@ -118,9 +121,61 @@ class InputMatrix():
         do_btn = Button(win, text='Далее', bg='#dcf7dc')
         do_btn.grid(row=3+self.row+5, column=(1+self.col)//2, pady=5)
 
-        # Обработчик события кнопки
+        # Кнопки сохранения и загрузки конфигурации
+        save_config_btn = Button(win, text='Сохранить конфигурацию', bg='#dcf7dc')
+        load_config_btn = Button(win, text='Загрузить конфигурацию', bg='#dcf7dc')
+        save_config_btn.grid(row=3+self.row+6, column=self.col//2, pady=5)
+        load_config_btn.grid(row=3+self.row+6, column=self.col//2+2, pady=5)
+
+
+        # Обработчик событий кнопки "Сохранить конфигурацию"
+        def save_config(event):
+            sa = asksaveasfilename(defaultextension='hls', filetypes=[('HLS files', '.hls'), ('All files', '.*')])
+            if sa:
+                file = open(sa, 'wb')
+                matrix_for_write = [[el.get() for el in row] for row in self.matrix_entry]
+                q_wr = []
+                v_wr = 0
+                if self.method == 1:
+                    q_wr = [el.get() for el in self.q_entry]
+                    v_wr = self.v_entry.get()
+                content = [matrix_for_write, q_wr, v_wr]
+                pckl.dump(content, file)
+                file.close()
+
+        # Обработчик событий кнопки "Загрузить конфигурацию"
+        def load_config(event):
+            op = askopenfilename(defaultextension='hls', filetypes=[('HLS files', '.hls'), ('All files', '.*')])
+            if op:
+                file = open(op, 'rb')
+                content = pckl.load(file)
+                file.close()
+
+                # Проверить совместимость конфигурации и матрицы
+                if len(content[0]) != self.row or len(content[0][0]) != self.col:
+                    messagebox.showwarning("Ошибка", "Конфигурация не согласована с размерностью матрицы!")
+                    return
+                for i in range(self.row):
+                    for j in range(self.col):
+                        self.matrix_entry[i][j].insert(END, content[0][i][j])
+
+                if self.method == 1:
+                    # Проверить совместимости
+                    if len(content[1]) != self.col:
+                        messagebox.showwarning("Ошибка", "Конфигурация не согласована с размерностью вектора вероятностей!")
+                        return
+                    for i in range(self.col):
+                        self.q_entry[i].insert(END, content[1][i])
+
+                    self.v_entry.insert(END, content[-1])
+
+
+
+        # Обработчик события кнопки "Далее"
         def show_solution_savidj(event):
             matrix = np.zeros((self.row, self.col), dtype=float)
+            q = []
+            v = 0
 
             for i in range(self.row):
                 for j in range(self.col):
@@ -128,29 +183,33 @@ class InputMatrix():
                         try:
                             matrix[i, j] = float(self.matrix_entry[i][j].get())
                         except ValueError:
+                            self.flag = True
                             messagebox.showwarning("Ошибка", "Данные введены неверно!")
                             return
                     else:
+                        self.flag = True
                         messagebox.showwarning("Ошибка", "Данные введены неверно!")
                         return
 
             if self.method == 1:
 
                 # Заполнение данными параметров для метода Ходжа-Лемана
-                q = []
-                v = 0
+
                 for i in (range(self.col)):
                     if self.q_entry[i].get():
                         try:
                             q.append(float(self.q_entry[i].get()))
                             # Ограничение по размеру числа
                             if not 0 <= q[-1] <= 1:
+                                self.flag = True
                                 messagebox.showwarning("Ошибка", "Параметр 'q' должен принадлежить отрезку [0, 1]!")
                                 return
                         except ValueError:
+                            self.flag = True
                             messagebox.showwarning("Ошибка", "Данные введены неверно!")
                             return
                     else:
+                        self.flag = True
                         messagebox.showwarning("Ошибка", "Данные введены неверно!")
                         return
 
@@ -159,12 +218,15 @@ class InputMatrix():
                         v = float(self.v_entry.get())
                         # Ограничение по размеру числа
                         if not 0 <= v <= 1:
+                            self.flag = True
                             messagebox.showwarning("Ошибка", "Параметр 'v' должен принадлежить отрезку [0, 1]!")
                             return
                     except ValueError:
+                        self.flag = True
                         messagebox.showwarning("Ошибка", "Данные введены неверно!")
                         return
                 else:
+                    self.flag = True
                     messagebox.showwarning("Ошибка", "Данные введены неверно!")
                     return
 
@@ -173,7 +235,8 @@ class InputMatrix():
 
         # Связывание виджета, события и функции
         do_btn.bind('<Button-1>', show_solution_savidj)
-
+        save_config_btn.bind('<Button-1>', save_config)
+        load_config_btn.bind('<Button-1>', load_config)
 
 class SolutionHodjLeman():
 
