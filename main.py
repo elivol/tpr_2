@@ -251,6 +251,7 @@ class SolutionHodjLeman():
         # Решение задачи:
         solution = hodj_leman(matrix, q, v)
         row_a = solution[1].shape[0]
+        col_a = matrix.shape[1]
 
         # Создание дочернего окна
         win = Toplevel(root, relief='raised')
@@ -315,6 +316,36 @@ class SolutionHodjLeman():
         for i in range(len(solution[2])):
             str_res = 'E['+str(solution[2][i][1])+'] ='+str(solution[2][i][0])
             Label(win, text=str_res, fg='blue').grid(row=17+i, column=0)
+
+        save_solution_btn = Button(win, text='Сохранить результаты решения', bg='#dcf7dc')
+        save_solution_btn.grid(row=row_a + 18, column=0, columnspan=2, pady=5)
+
+        # Обработчик нажатия кнопки
+        def save_solution(event):
+            sa = asksaveasfilename(defaultextension='txt', filetypes=[('Text files', '.txt'), ('All files', '.*')])
+            if sa:
+                content = 'Метод Ходжа-Лемана\nИсходные данные:\n1)Матрица:\n'
+                for i in range(row_a):
+                    for j in range(col_a):
+                        content += str(matrix[i, j])+' '
+                    content += '\n'
+                content += '2)Вероятности: '
+                for i in range(col_a):
+                    content += str(q[i])+' '
+                content += '\n'+'3)Степень доверия: '+str(v)+'\nРешение:\n1)Столбец e[ir]:\n'
+                for i in range(row_a):
+                    content += str(solution[1][i])+'\n'
+                content += 'Окончательное решение:\n'
+                for i in range(len(solution[2])):
+                    content += 'E['+str(i+1)+'] = '+str(solution[2][i][0])+'\n'
+                file = open(sa, 'w')
+                file.write(content)
+                file.close()
+
+        # Связывание обработчика и кнопки
+        save_solution_btn.bind('<Button-1>', save_solution)
+
+
 
 
 class SolutionSavidj():
@@ -388,6 +419,38 @@ class SolutionSavidj():
             str_res = 'E['+str(result[i][1])+'] ='+str(result[i][0])
             Label(win, text=str_res, fg='blue').grid(row=row_a+i+10, column=0)
 
+        save_solution_btn = Button(win, text='Сохранить результаты решения', bg='#dcf7dc')
+        save_solution_btn.grid(row=row_a+len(result)-1+10, column=col_a+7, pady=5, padx=5)
+
+        # Обработчик нажатия кнопки
+        def save_solution(event):
+            sa = asksaveasfilename(defaultextension='txt', filetypes=[('Text files', '.txt'), ('All files', '.*')])
+            if sa:
+                content = 'Метод Сэвиджа\nИсходные данные:\nМатрица:\n'
+                for i in range(row_a):
+                    for j in range(col_a):
+                        content += str(matrix[i, j]) + ' '
+                    content += '\n'
+
+                content += '\nРешение:\n1)Матрица a:\n'
+                for i in range(row_a):
+                    for j in range(col_a):
+                        content += str(solution[0][i, j]) + ' '
+                    content += '\n'
+
+                content += '\nСтолбец e[ir]:\n'
+                for i in range(row_a):
+                    content += str(solution[1][i])+'\n'
+
+                content += 'Окончательное решение:\n'
+                for i in range(len(solution[2])):
+                    content += 'E[' + str(i + 1) + '] = ' + str(solution[2][i][0]) + '\n'
+                file = open(sa, 'w')
+                file.write(content)
+                file.close()
+
+        # Связывание обработчика и кнопки
+        save_solution_btn.bind('<Button-1>', save_solution)
 
 win = MainWindow()
 root.mainloop()
