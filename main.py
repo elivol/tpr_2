@@ -442,7 +442,7 @@ class SolutionSavidj():
                 for i in range(row_a):
                     content += str(solution[1][i])+'\n'
 
-                content += 'Окончательное решение:\n'
+                content += '\nОкончательное решение:\n'
                 for i in range(len(solution[2])):
                     content += 'E[' + str(i + 1) + '] = ' + str(solution[2][i][0]) + '\n'
                 file = open(sa, 'w')
